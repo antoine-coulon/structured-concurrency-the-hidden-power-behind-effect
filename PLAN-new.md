@@ -8,9 +8,9 @@ Today I will talk about Concurrency
 
 "Concurrency is about dealing with a lot of things at once" (Rob Pike)
 
-- Managing efficiently concurrency, starvation  
-- Race conditions, cancelation, deadlocks, resource leaks, orphan tasks/threads/processes
-- Unstructured concurrency leads to "orphan" tasks.
+- Managing efficiently concurrency, avoiding starvation  
+- Dealing with race conditions, cancelation, deadlocks, resource leaks
+- Orphan tasks/threads/processes
 
 3) Let's take for instance an example with a short snippet of code using async/await
 
@@ -64,14 +64,6 @@ Efficient context switching happens entirely in user space without OS thread ove
 
 3. Precise Control Over Execution Flow
 
-Unlike OS threads, which are preemptively scheduled (the OS interrupts and resumes them unpredictably), fibers are cooperatively scheduled (explicitly yielding control).
-This makes them more predictable, reducing issues like race conditions and ensuring that child tasks remain within the structured scope of their parent.
-
 4. Seamless Integration with Structured Concurrency
-
-Fibers naturally enforce task hierarchies because they execute within the context of their parent.
-When a fiber finishes or is canceled, its child fibers can be automatically cleaned up—exactly how Structured Concurrency is designed to work.
-Parent-fiber failure can propagate cleanly to its children, ensuring no "orphaned" tasks are left running unexpectedly.
-
 
 7) I hope you enjoyed the talk, and if not, I'll see you at the [insert_activity]
