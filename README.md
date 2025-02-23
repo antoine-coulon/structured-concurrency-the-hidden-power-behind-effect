@@ -1,0 +1,1 @@
+## Structured Concurrency, the hidden power behind Effect @ Effect Days conference (#2)
