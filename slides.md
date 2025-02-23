@@ -74,17 +74,17 @@ css: unocss
 
 > "Concurrency is about dealing with a lot of things at once" (Rob Pike)
 
-- Providing efficient concurrency, avoiding starvation and resource leaks 
+- Providing efficient concurrency, avoiding starvation, resource leaks, race conditions 
 - Offering cancellation with proper finalization mechanisms
-- Dealing with errors
-- Avoiding orphan tasks/threads/processes
+- Dealing with error management and propagation
+- APIs gaps between concurrent and non-concurrent code 
 
 <div v-click>
 
-  <div class="grid grid-cols-2 gap-x-4 pt-1">
+  <div class="grid grid-cols-[3fr_2fr] gap-x-4 pt-1">
     
   <div class="pt-15">
-    <b>The Event-Loop solves many concurrency issues, but some are still left</b>
+    <b>⚠️ An Event-Loop doesn't solve all concurrency issues</b>
   </div>
 
   <div class="flex justify-center">
@@ -233,9 +233,9 @@ C -->|forks| E[Child Task C]
 
 <div class="grid grid-cols-2 gap-x-4 pt-1">
 
-<div v-click>
+<div>
 
-```ts
+```ts {all|14-16|all}
 import { Console, Duration, Effect, pipe } from "effect";
 
 const fetchUserId = (id: number) =>
@@ -258,9 +258,9 @@ const fetchUserId = (id: number) =>
 
 </div>
 
-<div v-click>
+<div>
 
-```ts
+```ts {all|8,11|all}
 const interruptProgram = Effect.interrupt.pipe(
   Effect.delay(Duration.seconds(2))
 );
