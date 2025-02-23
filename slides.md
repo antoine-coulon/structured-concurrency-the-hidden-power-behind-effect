@@ -13,7 +13,7 @@ lineNumbers: false
 info: |
   ## Antoine Coulon, Effect Days #2
   
-  Using Effect to build Production-Ready TypeScript Software
+  Structured Concurrency, the hidden power behind Effect
 # persist drawings in exports and build
 drawings:
   persist: false
