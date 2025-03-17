@@ -32,14 +32,13 @@ css: unocss
 
 <div class="grid grid-cols-10 gap-x-4 pt-5 pr-10 pl-10">
 
-<div class="col-start-1 col-span-7 grid grid-cols-[3fr,2fr] mr-10">
+<div class="col-start-1 col-span-8 grid grid-cols-[3fr,2fr] mr-10">
   <div class="pb-4">
     <h1><b>Antoine Coulon</b></h1>
     <div class="leading-8 mt-8 flex flex-col">
-      <p class="mt-3">Freelance Lead Software Engineer</p>
-      <p class="mt-3">Author <b color="orange">skott, effect-introduction</b></p>
+      <p class="mt-3">Freelance Lead Software Engineer @ <b color="orange">Seanine Consulting</b></p>
+      <p class="mt-3">Author <b color="orange">skott, digraph-js, effect-introduction</b></p>
       <p class="mt-3">Advocate <b color="orange">Effect</b></p>
-      <p class="mt-3">Contributor <b color="orange">Rush.js, NodeSecure</b></p>
     </div>  
   </div>
   <div class="border-l border-gray-400 border-opacity-25 !all:leading-12 !all:list-none my-auto">
@@ -47,12 +46,13 @@ css: unocss
 
 </div>
 
-<div class="pl-20 col-start-8 col-span-10">
-  <img src="https://avatars.githubusercontent.com/u/43391199?s=400&u=b394996dd7ddc0bf7a317185ee9c378d5b609e12&v=4" class="rounded-full w-40 margin-0-auto" />
+<div class="pl-20 col-start-9 col-span-10">
+  <img src="/anc.jpeg" class="rounded-full w-40 margin-0-auto" />
 
   <div class="mt-5">
     <div class="mb-4 flex justify-between"><ri-github-line color="blue"/> <b color="opacity-30 ml-2">antoine-coulon</b></div>
     <div class="mb-4 flex justify-between"><ri-twitter-line color="blue"/> <b color="opacity-30 ml-2">c9antoine</b></div>
+     <div class="mb-4 flex justify-between"><ri-linkedin-box-fill color="blue"/> <b color="opacity-30 ml-2">Antoine Coulon</b></div>
     <div class="mb-4 flex justify-between"><ri-user-3-line color="blue"/> <b color="opacity-30 ml-2">dev.to/antoinecoulon</b></div>
   </div>
 </div>
@@ -74,12 +74,16 @@ css: unocss
 
 > "Concurrency is about dealing with a lot of things at once" (Rob Pike)
 
-- Providing efficient concurrency, avoiding starvation, resource leaks, race conditions 
-- Offering cancellation with proper finalization mechanisms
+<br>
+
+- Avoiding starvation, deadlocks, resource leaks, race conditions 
+- Offering resource-safety through cancellation with proper finalization mechanisms
 - Dealing with error management and propagation
+- Providing efficient concurrency (CPU + Memory)
 - APIs gaps between concurrent and non-concurrent code 
 
-<div v-click>
+
+<div>
 
   <div class="grid grid-cols-[3fr_2fr] gap-x-4 pt-1">
     
@@ -97,45 +101,60 @@ css: unocss
 
 ---
 
-## The JavaScript async/await problem
+## Concurrency with JavaScript: few problems
 
-> Leaking resources is too easy
+> It's too easy to lose control over execution and leak resources
 
-<br>
 
-<div class="grid grid-cols-2 gap-x-2 pt-1">
+<div>
 
-  <div>
+<div class="grid grid-cols-2 gap-x-1">
 
-```ts {1|4|all|4}
+<div>
+
+```ts
 async function acquireUseRelease(work) {
   let resource = await acquire();
   try {
+    // What if it never settles?
     await work(resource);
   } finally {
+    // Never happens
     release(resource);
   }
 }
 ```
+</div>
 
-<div v-click class="pt-5 flex justify-center">
-  <div>
-  What if a Promise never settles? It's leaked forever
 
-  <ul class="pt-5">
-    <li>We don't have any handle on that Promise</li>
-    <li>Event-loop will be kept alive</li>
-    <li>Resource won't be released</li>
-  </ul>
+<div class="pt-1">
+
+  ```ts
+  async function work(tasks) {
+    try {
+      // Unbounded execution
+      const result = await Promise.all(tasks);
+    } catch {
+      // In case of Failure, other Promises are 
+      // still running even though Promise.all 
+      // is already settled
+    }
+  }
+  ```
+  
   </div>
+
   </div>
+
+  <div class="flex justify-center">
+
+  → Execution **control is easily lost** <br><br>
+  → Zero control over **concurrent execution** <br><br>
+  → Poor control over **resource management** <br><br>
 
   </div>
 
 
-  <div v-click class="flex justify-center">
-    <img src="/promise-settlement.gif" />
-  </div>
 
 
 </div>
@@ -145,48 +164,56 @@ async function acquireUseRelease(work) {
 
 ---
 
-## Do we have builtin solutions for that?
+## Do we have builtin solutions for these problems?
 
-
-<div class="grid grid-cols-2 gap-x-4 pt-3">
+<div class="grid grid-cols-2 gap-x-4 pt-5">
 
   <div v-click>
 
-    Explicit resource management (stage 3)
+    Explicit resource management 
+
 
 ```ts
 export async function acquireUseRelease(resource) {
   using resource = await acquire();
   await work(resource);
+  // When leaving the scope of that function, "resource" 
+  // is released following methods defined on 
+  // Symbol.dispose or Symbol.asyncDispose
 }
 ```
 
-→ We are still bound to `work()` lifetime
-<br><br>
-→ More or less syntactic sugar over `try/finally`
+<div class="pt-2">
 
+→ Automatic scope tracking and isolated cleanup following `try/finally` semantics
+<br>
+
+→ We are still bound to `work()` lifetime
+
+</div>
 
   </div>
 
   <div v-click>
 
     Abort Controller API
+    
 
-```ts
-async function acquireUseRelease(work, signal) {
-  let resource = await acquire(signal);
-  try {
-    await work(resource, signal);
-  } finally {
-    release(resource);
+  ```ts
+  async function acquireUseRelease(work, signal) {
+    let resource = await acquire(signal);
+    try {
+      await work(resource, signal);
+    } finally {
+      release(resource);
+    }
   }
-}
-```
+  ```
 
-→ Good if the signal is correctly managed and drilled down
-<br>
-<br>
-→ Firing the signal is a request, **not a guaranteed cancellation**
+  → Good if the signal is correctly **managed** and **drilled down** within the **entire operation graph**
+  <br>
+
+  → Firing the signal is a request, **not a guaranteed cancellation**
 
 
   </div>
@@ -197,7 +224,7 @@ async function acquireUseRelease(work, signal) {
 
 ## The real solution: Structured Concurrency
 
-> A hierarchical model following the path of an operating system
+> A hierarchical execution model following the path of an operating system
 
 <div class="grid grid-cols-2 gap-x-4 pt-1">
 
@@ -207,6 +234,14 @@ async function acquireUseRelease(work, signal) {
   <p class="pt-4">⏳ Bound lifetime: by default, a child can not outlive its parent lifetime.</p>
   
   <p class="pt-4"> ❌ Cancellation & Propagation: When a parent task is cancelled, all children are cancelled automatically.</p>
+
+
+  <div class="flex gap-10 pt-7">
+    <img width="100" src="/kotlin.png" />
+    <img width="100" src="/swift.png" />
+    <img width="100" src="/java.png" />
+  </div>
+  
   </div>
 
   <div class="text-center">
@@ -226,19 +261,19 @@ C -->|forks| E[Child Task C]
 
 ---
 
-## Structured Concurrency with Effect
+## 🇮🇹 🤌 Structured Concurrency with Effect
 
-> Hold my Automatic Supervision... you don't even need to think about it
+> Hold my Structured Concurrency... you don't even need to think about it
 
 
 <div class="grid grid-cols-2 gap-x-4 pt-1">
 
 <div>
 
-```ts {all|14-16|all}
+```ts {all|12-17,19-21|all}
 import { Console, Duration, Effect, pipe } from "effect";
 
-const fetchUserId = (id: number) =>
+const fetchUserById = (id: number) =>
   pipe(
     Effect.async((resolve) => {
       console.log(`Start fetching ${id}`);
@@ -247,7 +282,12 @@ const fetchUserId = (id: number) =>
         resolve(Effect.succeed(`User ${id}`));
       }, 1000 * id);
 
-      return Effect.sync(() => clearTimeout(timeout));
+      return pipe(
+        Effect.sync(() => clearTimeout(timeout)),
+        Effect.tap(() => Console.log(
+          `Timer #${id} cleared`)
+        )
+      );
     }),
     Effect.onInterrupt(() => 
       Console.log(`Fetch User#${id} interrupted`)
@@ -260,19 +300,19 @@ const fetchUserId = (id: number) =>
 
 <div>
 
-```ts {all|8,11|all}
+```ts {all|1-3,10-12|all}
 const interruptProgram = Effect.interrupt.pipe(
   Effect.delay(Duration.seconds(2))
 );
 
 const program = pipe(
   Effect.all(
-    [ fetchUserId(1), fetchUserId(2), fetchUserId(3) ], 
-    { concurrency: "unbounded" }
+   [fetchUserById(1), fetchUserById(2), fetchUserById(3)], 
+   { concurrency: "unbounded" },
   ),
   Effect.zip(interruptProgram, {
-    concurrent: true,
-  })
+   concurrent: true,
+  }),
 ).pipe(Effect.runFork);
 ```
 
@@ -281,7 +321,9 @@ $ Start fetching 1
 $ Start fetching 2
 $ Start fetching 3
 $ User#1 fetched
+$ Timer#2 cleared
 $ User#2 fetching interrupted
+$ Timer#3 cleared
 $ User#3 fetching interrupted
 ```
 
@@ -290,15 +332,62 @@ $ User#3 fetching interrupted
 
 </div>
 
+--- 
+
+## A declarative way of dealing with Concurrency
+
+> Following the path of Structured Programming: improving quality, clarity and productivity of a program
+
+<div class="grid grid-cols-2 gap-x-4 pt-6">
+
+<div>
+
+→ Concurrency is **declarative** and **explicit**
+
+→ **Unified API** to leverage (or not) concurrency at will
+
+→ Everything happens automatically **behind the scenes** (thanks runtime)
+
+
+</div>
+
+<div>
+
+```ts
+import { Effect } from "effect";
+
+const userIds = Array.from(
+  { length: 1000 }, (_, idx) => idx
+);
+
+const retrieveAllUsers = pipe( 
+  userIds,
+  // SEQUENTIAL (default)
+  Effect.forEach(
+    (id) => fetchUserById(id), 
+    // BOUNDED CONCURRENCY
+    { concurrency: 30 },
+    // OR UNBOUNDED CONCURRENCY
+    { concurrency: "unbounded" },
+    // OR INHERITED CONCURRENCY
+    { concurrency: "inherit" }
+  )
+);
+```
+
+</div>
+
+</div>
+
 ---
 
 ## 👨‍👧‍👧 Automatic Supervision
 
-> The child fiber is automatically supervised by the parent fiber
+> The child Fiber is automatically supervised by the parent Fiber
 
 <div class="grid grid-cols-2 gap-x-4 pt-1">
 
-<div v-click>
+<div>
 
 `Effect.fork`: child is tied to the parent lifetime
 
@@ -326,27 +415,9 @@ const program = Effect.gen(function* () {
 
 </div>
 
-<div v-click class="pt-5 text-center">
+<div class="pt-5 text-center">
 
-<div class="grid grid-cols-2 gap-x-4 pt-1">
-
-<div>
-```mermaid {scale: 0.8}
-graph TB
-Root[Parent Fiber #0] -->|Forks into Child Fiber #1| A[Child Fiber #1]
-```
-</div>
-
-<div>
-```mermaid {scale: 0.8}
-graph TB
-Root[Parent Fiber #0] 
-A[Child Fiber #1]
-Interruption --> Root 
-Root --> |Propagates Interruption| A 
-```
-</div>
-
+<div class="grid grid-cols-2 gap-x-4 pt-8">
 
 
 </div>
@@ -359,7 +430,17 @@ level=INFO fiber=#0 message=foreground
 level=INFO fiber=#0 message=Bye
 ```
 
+<div class="pt-4 text-center">
+```mermaid {scale: 0.8}
+graph TB
+Root[Parent Fiber #0] -->|Forks into Child Fiber #1| A[Child Fiber #1]
+```
 </div>
+
+</div>
+
+
+
 
 </div>
 
@@ -367,52 +448,53 @@ level=INFO fiber=#0 message=Bye
 
 ## 💨🏃‍➡️ Escaping the Parent Supervision
 
-> Forking Tasks detached from Parent Task lifetime using Scopes
+> Forking Fibers detached from parent Fibers using Scopes
 
 <div class="grid grid-cols-2 gap-x-4 pt-1">
 
-<div>
-  <div>
-
-  ```ts {all|14-15} {lines:true}
-  const program = Effect.gen(function* () {
-    yield* Effect.forkDaemon(background);
-  });
-  ```
-  </div>
-  
+<div>  
   <div class="pt-5">
 
   ```ts {all|14-15} {lines:true}
   const program = Effect.gen(function* () {
       // ^ Effect.Effect<void, never, Scope>
-    yield* Effect.forkScoped(background)
+    yield* Effect.forkScoped(backgroundJob)
   });
+
+  const main = Effect.scoped(
+    Effect.gen(function* () {
+      // Local scope starts
+      yield* Effect.fork(program)
+      yield* Effect.sleep("10 seconds")
+      // Local scope ends
+    })
+  );
   ```
   </div>
 
   <div class="pt-5">
 
   ```ts {all|1,3} {lines:true}
-  const program = (scope: Scope.Scope) =>
+  const anotherProgram = (scope: Scope.Scope) =>
     Effect.gen(function* () {
-      yield* Effect.forkIn(scope)(background);
+      yield* Effect.forkIn(scope)(backgroundJob);
     });
   ```
+
   </div>
 
   
 </div>
 
-<div v-click class="pt-5 text-center">
+<div class="pt-5 text-center">
 
 ```mermaid {scale: 0.8}
 graph TB
-FiberRuntime -->|Runtime manages| Root
-A -->|Lifetime tied to given Scope| B[Provided Scope: forkIn, forkScoped] 
-A -->|Lifetime tied to Global Scope| C[Global Scope: forkDaemon] 
-Root[RootFiber #0] -->|Forks into Child Fiber #1| A[Child Fiber #1]
-FiberRuntime -->|Supervises| C
+F[Fiber Runtime] -->|Manages| Root
+F[Fiber Runtime] -->|Manages| App
+User[Application] -->|Manages| App
+App[Provided Scopes: forkIn, forkScoped] -->|Lifetime now bound to given Scopes| A 
+Root[Root Fiber #0] -->|Forks into Child Fiber #1| A[Child Fiber #1]
 ```
 
 </div>
@@ -439,8 +521,8 @@ graph LR
 Runtime[Effect Runtime] --> |Orchestrates| F[Fibers]
 Runtime[Effect Runtime] --> |Manages| S[Scopes]
 F --> |Execute| E[Effects]
-F --> |Tied| S[Scopes]
-F --> |Tied to Parent| F
+F --> |Linked to| S[Scopes]
+F --> |Register relationships between Parent/Children| F
 ```
 </div>
 
