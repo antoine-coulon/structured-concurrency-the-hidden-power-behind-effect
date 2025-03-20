@@ -38,7 +38,7 @@ css: unocss
     <div class="leading-8 mt-8 flex flex-col">
       <p class="mt-3">Freelance Lead Software Engineer @ <b color="orange">Seanine Consulting</b></p>
       <p class="mt-3">Author <b color="orange">skott, digraph-js, effect-introduction</b></p>
-      <p class="mt-3">Advocate <b color="orange">Effect</b></p>
+      <p class="mt-3">Advocate <b color="orange">Effect</b>, co-organizing Effect Paris meetup</p>
     </div>  
   </div>
   <div class="border-l border-gray-400 border-opacity-25 !all:leading-12 !all:list-none my-auto">
@@ -99,6 +99,11 @@ css: unocss
 
 </div>
 
+<!-- 
+  START = 0:45
+
+  END = 1:30
+-->
 ---
 
 ## Concurrency with JavaScript: few problems
@@ -119,7 +124,7 @@ async function acquireUseRelease(work) {
     // What if it never settles?
     await work(resource);
   } finally {
-    // Never happens
+    // Never reached, never happens
     release(resource);
   }
 }
@@ -130,14 +135,18 @@ async function acquireUseRelease(work) {
 <div class="pt-1">
 
   ```ts
-  async function work(tasks) {
+  import { setTimeout } from "node:timers/promises";
+
+  async function work() {
     try {
-      // Unbounded execution
-      const result = await Promise.all(tasks);
+      const result = Promise.all([
+        setTimeout(1_000), 
+        setTimeout(5_000).then(() => Promise.reject()), 
+        setTimeout(20_000)
+      ]);
     } catch {
-      // In case of Failure, other Promises are 
-      // still running even though Promise.all 
-      // is already settled
+      // Caught the rejection, but other Promises
+      // are still running in the background
     }
   }
   ```
@@ -159,6 +168,12 @@ async function acquireUseRelease(work) {
 
 </div>
 
+
+<!-- 
+  START = 1:30
+
+  END = 3:00
+-->
 
 
 
@@ -220,6 +235,12 @@ export async function acquireUseRelease(resource) {
 
 </div>
 
+<!-- 
+  START = 3:00
+
+  END = 4:00
+-->
+
 ---
 
 ## The real solution: Structured Concurrency
@@ -258,6 +279,12 @@ C -->|forks| E[Child Task C]
   </div>
 
 </div>
+
+<!-- 
+  START = 4:00
+
+  END = 5:00
+-->
 
 ---
 
@@ -332,6 +359,12 @@ $ User#3 fetching interrupted
 
 </div>
 
+<!-- 
+  START = 5:00
+
+  END = 6:00
+-->
+
 --- 
 
 ## A declarative way of dealing with Concurrency
@@ -378,6 +411,13 @@ const retrieveAllUsers = pipe(
 </div>
 
 </div>
+
+<!-- 
+  START = 6:00
+
+  END = 6:45
+-->
+
 
 ---
 
@@ -439,11 +479,13 @@ Root[Parent Fiber #0] -->|Forks into Child Fiber #1| A[Child Fiber #1]
 
 </div>
 
-
-
-
 </div>
 
+<!-- 
+  START = 6:45
+
+  END = 8:00
+-->
 ---
 
 ## 💨🏃‍➡️ Escaping the Parent Supervision
@@ -501,6 +543,12 @@ Root[Root Fiber #0] -->|Forks into Child Fiber #1| A[Child Fiber #1]
 
 </div>
 
+<!-- 
+  START = 8:00
+
+  END = 9:00
+-->
+
 ---
 
 ## Fiber: the Effect primitive empowering Structured Concurrency
@@ -526,6 +574,12 @@ F --> |Register relationships between Parent/Children| F
 ```
 </div>
 
+<!-- 
+  START = 9:00
+
+  END = 10:30
+-->
+
 ---
 
 ## Thanks for listening!
@@ -542,7 +596,7 @@ F --> |Register relationships between Parent/Children| F
 
 
 <div class="flex justify-center mt-7">
-  <img src="/discord-qr.png" class="w-40 margin-0-auto" />
+  <img src="/qr.png" class="w-40 margin-0-auto" />
   <img src="/effect.png" class="ml-15 rounded-full w-40 margin-0-auto mt-4" />
 </div>
 
